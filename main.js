@@ -152,3 +152,8 @@ ipcMain.on('getCursorPosition', (e, global = false) => {
     }
     //win.webContents.send('mousemove', , );
 });
+
+ipcMain.on('maximize', (e) => {
+    let win = e.sender.getOwnerBrowserWindow();
+    win.maximize();
+});

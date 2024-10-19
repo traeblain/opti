@@ -23,6 +23,7 @@ let canDrag = false,
     curEl,
     titleEl,
     helpEl,
+    ctxEl,
     syncIndicatorEl,
     containerEl,
     imageContainerEl,
@@ -211,9 +212,11 @@ function init(){
     audEl = document.getElementById('audio');
     titleEl = document.getElementById('title');
     helpEl = document.getElementById('help');
-    helpEl.style.opacity = ''
+    helpEl.style.opacity = '';
+    ctxEl = document.getElementById('ctx');
+    ctxEl.getElementsByTagName('img')[0].src = '../icon.png';
     syncIndicatorEl = document.getElementById('syncIndicator');
-    syncIndicatorEl.style.opacity = ''
+    syncIndicatorEl.style.opacity = '';
     
     containerEl = document.getElementById('container');
     imageContainerEl = document.getElementById('image-container');
@@ -232,6 +235,32 @@ function init(){
             wasDragging = false;
             vidEl.play();
         }
+    });
+
+    ctxEl.querySelectorAll('span[data-action]').forEach(el => {
+        el.addEventListener('click', e => {
+            var key = el.getAttribute('data-action');
+            var keyObject = {
+                key: key.slice(-1),
+                altKey: false,
+                ctrlKey: false,
+                shiftKey: false,
+                metaKey: false,
+            };
+            if (key.includes('^')) keyObject.ctrlKey = true;
+            if (key.includes('!')) keyObject.altKey = true;
+            if (key.includes('+')) keyObject.shiftKey = true;
+            if (key.includes('f11')) {
+                ipcRenderer.send('maximize');
+            } else if (key.includes('esc')) {
+                window.close();
+            } else if (key.includes('home')) {
+                shell.openExternal('https://torcado.itch.io/opti');
+            } else {
+                window.dispatchEvent(new KeyboardEvent('keydown', keyObject));
+                window.dispatchEvent(new KeyboardEvent('keyup', keyObject));
+            }
+        });
     });
 }
 window.onload = init;
@@ -425,6 +454,12 @@ function onMouseUp(e) {
         e.stopPropagation();
         e.preventDefault();
     }
+    var pos = ipcRenderer.sendSync('getCursorPosition', true);
+    if (e.button === 2 && pos.x === mouseGlobalStartX) { 
+        openMenu();
+    } else {
+        ctxEl.style.top = '';
+    }
     ipcRenderer.send('windowMoved');
     cancelAnimationFrame(moveAnimId);
     moveAnimId = null;
@@ -558,6 +593,21 @@ function rotate(a){
         isRotated = true;
         //resizeMax();
     }
+}
+
+function openMenu(){
+    let xDiff = window.innerWidth - ctxEl.clientWidth;
+    let yDiff = window.innerHeight - ctxEl.clientHeight;
+    if(xDiff < 0 || yDiff < 0){
+        if(xDiff < yDiff){
+            ctxEl.style.transform = `scale(${1 - Math.abs(xDiff / ctxEl.clientWidth)})`;
+        } else {
+            ctxEl.style.transform = `scale(${1 - Math.abs(yDiff / ctxEl.clientHeight)})`;
+        }
+    } else {
+        ctxEl.style.transform = '';
+    }
+    ctxEl.style.top = '0';
 }
 
 function recenter(winW, winH){
